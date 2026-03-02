@@ -6,6 +6,19 @@ from groq import Groq
 from schemas import GrantDetails
 
 
+TYPE_MAPPING = {
+    "applications": "Applications",
+    "awards": "Awards",
+    "events": "Events",
+    "other opportunities": "Other Opportunities",
+    "accelerator": "Accelerators",
+    "accelerators": "Accelerators",
+    "pilot": "Pilot",
+    "grants": "Grants",
+    "investments": "Investments"
+}
+
+
 def extract_grant_details(raw_text: str, url: str):
 
     client = Groq(api_key=os.getenv("GROQ_API_KEY"))
@@ -16,7 +29,7 @@ You are an expert grant analyst.
 Extract the following details from the grant information below.
 
 Type of opportunity must be one of:
-applications, awards, events, other opportunities, accelerator, pilot, grants, investments.
+applications, awards, events, other opportunities, accelerators, pilot, grants, investments.
 
 Return ONLY valid JSON in this exact format:
 
@@ -40,26 +53,23 @@ Grant Information:
 
     response_text = completion.choices[0].message.content.strip()
 
-    # Extract JSON safely
     match = re.search(r"\{.*\}", response_text, re.DOTALL)
     if not match:
         raise ValueError("No valid JSON found in model response.")
 
     data = json.loads(match.group())
 
-    # ---- Calculate first_draft_date (1 week before deadline) ----
     submission_deadline = data.get("submission_deadline", "")
     first_draft_date = ""
 
     date_formats = [
-        "%d %B %Y",     # 23 March 2026
-        "%B %d, %Y",    # March 23, 2026
-        "%d %b %Y",     # 23 Mar 2026
-        "%b %d, %Y"     # Mar 23, 2026
+        "%d %B %Y",
+        "%B %d, %Y",
+        "%d %b %Y",
+        "%b %d, %Y"
     ]
 
     parsed_date = None
-
     for fmt in date_formats:
         try:
             parsed_date = datetime.strptime(submission_deadline.strip(), fmt)
@@ -73,11 +83,13 @@ Grant Information:
     else:
         first_draft_date = "Unable to auto-calculate"
 
-    # Final structured data
+    raw_type = data.get("type_of_oppurtunity", "").lower().strip()
+    mapped_type = TYPE_MAPPING.get(raw_type, "Other Opportunities")
+
     final_data = {
         "oppurtunity_name": data.get("oppurtunity_name", ""),
         "website": url,
-        "type_of_oppurtunity": data.get("type_of_oppurtunity", ""),
+        "type_of_oppurtunity": mapped_type,
         "amount": data.get("amount", ""),
         "submission_deadline": submission_deadline,
         "first_draft_date": first_draft_date,

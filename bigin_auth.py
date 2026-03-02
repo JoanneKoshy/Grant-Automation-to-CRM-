@@ -1,5 +1,7 @@
 import requests
 import os
+from dotenv import load_dotenv
+load_dotenv()
 
 def get_access_token():
     url = "https://accounts.zoho.in/oauth/v2/token"
@@ -12,8 +14,11 @@ def get_access_token():
     }
 
     response = requests.post(url, data=payload)
+    print("Auth response:", response.text)  # add this line
 
     if response.status_code != 200:
         raise Exception(f"Token error: {response.text}")
 
     return response.json()["access_token"]
+if __name__ == "__main__":
+    print(get_access_token())
