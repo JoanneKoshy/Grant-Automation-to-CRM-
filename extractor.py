@@ -31,6 +31,10 @@ Extract the following details from the grant information below.
 Type of opportunity must be one of:
 applications, awards, events, other opportunities, accelerators, pilot, grants, investments.
 
+For submission_deadline, return the date in this format: "Month Day, Year" e.g. "May 11, 2026".
+If only month and year are available, return "Month 1, Year" e.g. "May 1, 2026".
+If no year is mentioned, assume 2026.
+
 Return ONLY valid JSON in this exact format:
 
 {{
@@ -63,16 +67,22 @@ Grant Information:
     first_draft_date = ""
 
     date_formats = [
-        "%d %B %Y",
         "%B %d, %Y",
+        "%d %B %Y",
+        "%b %d, %Y",
         "%d %b %Y",
-        "%b %d, %Y"
+        "%B %Y",
+        "%b %Y",
+        "%d %B",
+        "%B %d",
     ]
 
     parsed_date = None
     for fmt in date_formats:
         try:
             parsed_date = datetime.strptime(submission_deadline.strip(), fmt)
+            if parsed_date.year == 1900:
+                parsed_date = parsed_date.replace(year=2026)
             break
         except:
             continue
